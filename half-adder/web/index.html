@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Half Adder Simulator</title>
+<style>
+  body { font-family: Inter, Arial, sans-serif; background: #F4F6FB; color: #1F2937; margin: 0; }
+  .muted { color: #6B7280; font-size: 14px; }
+
+  /* top navigation bar */
+  .nav { background: #fff; display: flex; justify-content: space-between; align-items: center; padding: 16px 60px; }
+  .nav b { font-size: 18px; }
+  .nav button { border: none; background: none; padding: 10px 16px; border-radius: 8px; color: #6B7280; font-size: 14px; cursor: pointer; }
+  .nav button.active { background: #E0EAFF; color: #2563EB; }
+
+  /* every page is hidden except the active one */
+  .page { display: none; max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  .page.active { display: block; }
+  h1 { margin: 0 0 6px; font-size: 30px; }
+
+  .card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .cards { display: flex; gap: 24px; margin-top: 24px; }
+  .left { width: 300px; }
+  .right { flex: 1; }
+  h3 { margin: 0 0 16px; font-size: 20px; }
+
+  /* input rows */
+  .inrow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .bit { width: 80px; height: 64px; font-size: 28px; border-radius: 10px; cursor: pointer;
+         border: 2px solid #2563EB; background: #fff; color: #2563EB; }
+  .bit.on { background: #2563EB; color: #fff; }
+  hr { border: none; border-top: 1px solid #E5E7EB; margin: 24px 0; }
+  .btns { display: flex; gap: 12px; }
+  .btn { height: 42px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid #E5E7EB; background: #fff; padding: 0 20px; }
+  .primary { flex: 1; background: #2563EB; color: #fff; border: none; }
+
+  /* sum and carry boxes */
+  .outs { display: flex; gap: 16px; margin-bottom: 20px; }
+  .out { flex: 1; border-radius: 12px; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .out span { font-size: 40px; font-weight: bold; }
+  .sum { background: #DCFCE7; color: #166534; }
+  .carry { background: #FFEDD5; color: #9A3412; }
+  .gate { background: #F4F6FB; border-radius: 12px; margin-top: 8px; }
+
+  /* truth table */
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .pill { background: #E0EAFF; color: #2563EB; font-size: 12px; padding: 6px 14px; border-radius: 20px; }
+  table { width: 100%; border-collapse: collapse; text-align: center; }
+  th { background: #F4F6FB; color: #6B7280; font-size: 13px; padding: 12px; }
+  td { padding: 16px; font-size: 18px; }
+  tr.hl td { background: #E0EAFF; }
+  .tag { display: inline-block; min-width: 28px; padding: 4px 8px; border-radius: 6px; font-size: 14px; }
+  .g { background: #DCFCE7; color: #166534; }
+  .o { background: #FFEDD5; color: #9A3412; }
+
+  /* history list */
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { background: #F9FAFB; padding: 20px; border-radius: 10px; margin-bottom: 12px; }
+  li.first { background: #E0EAFF; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <b>Half Adder Simulator</b>
+  <div>
+    <button id="nCalc" class="active" onclick="show('Calc')">Calculator</button>
+    <button id="nTruth" onclick="show('Truth')">Truth Table</button>
+    <button id="nHistory" onclick="show('History')">History</button>
+  </div>
+</div>
+
+<!-- PAGE 1: CALCULATOR (input on the left, output on the right) -->
+<div class="page active" id="pCalc">
+  <h1>Half adder calculator</h1>
+  <p class="muted">Explore how two binary inputs become a sum and a carry.</p>
+
+  <div class="cards">
+    <div class="card left">
+      <h3>Inputs</h3>
+      <div class="inrow">
+        <div>Input A<br><span class="muted">First binary input</span></div>
+        <button class="bit" id="btnA" onclick="flip('a')">0</button>
+      </div>
+      <div class="inrow">
+        <div>Input B<br><span class="muted">Second binary input</span></div>
+        <button class="bit" id="btnB" onclick="flip('b')">0</button>
+      </div>
+      <hr>
+      <div class="btns">
+        <button class="btn primary" onclick="calculate()">Calculate</button>
+        <button class="btn" onclick="reset()">Reset</button>
+      </div>
+      <p class="muted" id="msg"></p>
+    </div>
+
+    <div class="card right">
+      <h3>Output</h3>
+      <div class="outs">
+        <div class="out sum"><div>Sum<br><small>A XOR B</small></div><span id="sum">0</span></div>
+        <div class="out carry"><div>Carry<br><small>A AND B</small></div><span id="carry">0</span></div>
+      </div>
+      <b style="font-size:13px">Logic gate diagram</b>
+      <div class="gate">
+        <svg viewBox="0 0 520 200" width="100%">
+          <!-- wires: colour is changed by JavaScript -->
+          <path id="wireA" d="M60,30 H200 M100,30 V130 H200" fill="none" stroke-width="2"/>
+          <path id="wireB" d="M60,150 H200 M140,150 V50 H200" fill="none" stroke-width="2"/>
+          <path id="wireS" d="M270,40 H400" fill="none" stroke-width="2"/>
+          <path id="wireC" d="M260,145 H400" fill="none" stroke-width="2"/>
+          <!-- gates -->
+          <path d="M200,15 Q225,40 200,65 Q250,65 275,40 Q250,15 200,15 Z" fill="#fff" stroke="#6B7280" stroke-width="2"/>
+          <path d="M200,120 H235 A25,25 0 0 1 235,170 H200 Z" fill="#fff" stroke="#6B7280" stroke-width="2"/>
+          <text x="225" y="44" font-size="12">XOR</text>
+          <text x="213" y="149" font-size="12">AND</text>
+          <text id="tXor" x="220" y="85" font-size="11" fill="#6B7280"></text>
+          <text id="tAnd" x="215" y="190" font-size="11" fill="#6B7280"></text>
+          <!-- input labels -->
+          <text id="tA" x="10" y="34" font-size="13"></text>
+          <text id="tB" x="10" y="154" font-size="13"></text>
+          <!-- output boxes -->
+          <rect x="400" y="25" width="90" height="30" rx="6" fill="#DCFCE7"/>
+          <text id="tSum" x="410" y="45" font-size="13" fill="#166534"></text>
+          <rect x="400" y="130" width="90" height="30" rx="6" fill="#FFEDD5"/>
+          <text id="tCarry" x="410" y="150" font-size="13" fill="#9A3412"></text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2: TRUTH TABLE -->
+<div class="page" id="pTruth">
+  <h1>Every combination, explained.</h1>
+  <p class="muted">Four input combinations. Two simple rules. One complete picture.</p>
+  <div class="card" style="margin-top:24px">
+    <div class="top">
+      <h3 style="margin:0">Truth Table</h3>
+      <span class="pill" id="pill"></span>
+    </div>
+    <table>
+      <tr><th>Input A</th><th>Input B</th><th>Sum (XOR)</th><th>Carry (AND)</th></tr>
+      <tr id="r00"><td>0</td><td>0</td><td><span class="tag g">0</span></td><td><span class="tag o">0</span></td></tr>
+      <tr id="r01"><td>0</td><td>1</td><td><span class="tag g">1</span></td><td><span class="tag o">0</span></td></tr>
+      <tr id="r10"><td>1</td><td>0</td><td><span class="tag g">1</span></td><td><span class="tag o">0</span></td></tr>
+      <tr id="r11"><td>1</td><td>1</td><td><span class="tag g">0</span></td><td><span class="tag o">1</span></td></tr>
+    </table>
+    <p class="muted" style="text-align:center">XOR: inputs differ &nbsp;·&nbsp; AND: both inputs are 1</p>
+  </div>
+</div>
+
+<!-- PAGE 3: HISTORY -->
+<div class="page" id="pHistory">
+  <h1>Your calculation history</h1>
+  <p class="muted">Revisit your results, with the most recent calculation on top.</p>
+  <div class="card" style="margin-top:24px">
+    <div class="top">
+      <div><h3 style="margin:0">Calculation stack</h3><span class="muted">Stored using a stack (LIFO)</span></div>
+      <button class="btn" onclick="undo()">↶ Undo last</button>
+    </div>
+    <ul id="list"></ul>
+  </div>
+</div>
+
+<script>
+  var a = 0;          // input A (what the toggle buttons show)
+  var b = 0;          // input B
+  var stack = [];     // history, used as a stack
+
+  // show one page and highlight its menu button
+  function show(name) {
+    var pages = ["Calc", "Truth", "History"];
+    for (var i = 0; i < pages.length; i++) {
+      document.getElementById("p" + pages[i]).classList.remove("active");
+      document.getElementById("n" + pages[i]).classList.remove("active");
+    }
+    document.getElementById("p" + name).classList.add("active");
+    document.getElementById("n" + name).classList.add("active");
+  }
+
+  // wire colour: blue for 1, grey for 0
+  function colour(v) { return v == 1 ? "#2563EB" : "#9CA3AF"; }
+
+  // only redraws the two toggle buttons
+  function updateInputs() {
+    document.getElementById("btnA").textContent = a;
+    document.getElementById("btnB").textContent = b;
+    document.getElementById("btnA").className = a ? "bit on" : "bit";
+    document.getElementById("btnB").className = b ? "bit on" : "bit";
+  }
+
+  // shows the output, diagram and truth table highlight (only called by Calculate)
+  function showResult(x, y) {
+    var sum = x ^ y;       // XOR
+    var carry = x & y;     // AND
+
+    document.getElementById("sum").textContent = sum;
+    document.getElementById("carry").textContent = carry;
+
+    // logic gate diagram uses the calculated inputs
+    document.getElementById("wireA").setAttribute("stroke", colour(x));
+    document.getElementById("wireB").setAttribute("stroke", colour(y));
+    document.getElementById("wireS").setAttribute("stroke", colour(sum));
+    document.getElementById("wireC").setAttribute("stroke", colour(carry));
+    document.getElementById("tA").textContent = "A = " + x;
+    document.getElementById("tB").textContent = "B = " + y;
+    document.getElementById("tXor").textContent = x + " XOR " + y;
+    document.getElementById("tAnd").textContent = x + " AND " + y;
+    document.getElementById("tSum").textContent = "Sum   " + sum;
+    document.getElementById("tCarry").textContent = "Carry  " + carry;
+
+    // truth table: highlight the row of the calculated inputs
+    clearHighlight();
+    document.getElementById("r" + x + y).className = "hl";
+    document.getElementById("pill").textContent = "Current inputs  A = " + x + "  B = " + y;
+  }
+
+  // empty output (before any calculation, and after Reset)
+  function clearResult() {
+    document.getElementById("sum").textContent = "-";
+    document.getElementById("carry").textContent = "-";
+    var wires = ["wireA", "wireB", "wireS", "wireC"];
+    for (var i = 0; i < wires.length; i++) {
+      document.getElementById(wires[i]).setAttribute("stroke", "#9CA3AF");
+    }
+    document.getElementById("tA").textContent = "A";
+    document.getElementById("tB").textContent = "B";
+    document.getElementById("tXor").textContent = "";
+    document.getElementById("tAnd").textContent = "";
+    document.getElementById("tSum").textContent = "Sum   -";
+    document.getElementById("tCarry").textContent = "Carry  -";
+    clearHighlight();
+    document.getElementById("pill").textContent = "No calculation yet";
+  }
+
+  function clearHighlight() {
+    var rows = ["r00", "r01", "r10", "r11"];
+    for (var i = 0; i < rows.length; i++) {
+      document.getElementById(rows[i]).className = "";
+    }
+  }
+
+  // toggle buttons: flip 0 to 1 and 1 to 0 (output does not change yet)
+  function flip(which) {
+    if (which == "a") { a = 1 - a; } else { b = 1 - b; }
+    updateInputs();
+  }
+
+  // Reset: inputs back to 0 and output cleared
+  function reset() {
+    a = 0;
+    b = 0;
+    updateInputs();
+    clearResult();
+    document.getElementById("msg").textContent = "";
+  }
+
+  // Calculate: show the output and push the result onto the stack
+  function calculate() {
+    showResult(a, b);
+    stack.push({ a: a, b: b, sum: a ^ b, carry: a & b });
+    document.getElementById("msg").textContent = "Saved to history (" + stack.length + ")";
+    showHistory();
+  }
+
+  // Undo last: pop from the stack
+  function undo() {
+    stack.pop();
+    showHistory();
+  }
+
+  // write the stack on the history page, latest first
+  function showHistory() {
+    var list = document.getElementById("list");
+    list.innerHTML = "";
+    if (stack.length == 0) {
+      list.innerHTML = "<li>No history yet.</li>";
+    }
+    for (var i = stack.length - 1; i >= 0; i--) {
+      var h = stack[i];
+      var cls = (i == stack.length - 1) ? "first" : "";
+      list.innerHTML += '<li class="' + cls + '">A=' + h.a + ", B=" + h.b +
+        " → Sum=" + h.sum + ", Carry=" + h.carry + "</li>";
+    }
+  }
+
+  updateInputs();
+  clearResult();
+  showHistory();
+</script>
+</body>
+</html>
